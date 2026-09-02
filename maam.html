@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מחשבון מע"מ ותמחור</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#EEF3FB; --bg2:#E7F3F1;
+    --ink:#1F2A44; --ink-soft:#6B7A99;
+    --card:#ffffff;
+    --teal:#1E9C8B; --teal-dark:#157A6D; --teal-light:#DDF3EF;
+    --blue:#3E6FE0; --blue-dark:#2E56B8; --blue-light:#E4ECFC;
+    --line:#E4E9F2;
+    --good:#1E9C6B; --good-light:#DFF6EA;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Rubik',sans-serif; color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1) 0%, var(--bg2) 100%);
+    min-height:100vh; display:flex; justify-content:center; padding:28px 16px 60px;
+  }
+  .wrap{width:100%; max-width:640px;}
+  header{text-align:center; margin-bottom:22px;}
+  header h1{font-size:1.7rem; margin:0 0 6px; font-weight:800;}
+  header p{margin:0; color:var(--ink-soft); font-size:.95rem;}
+
+  .card{background:var(--card); border-radius:20px; padding:24px; box-shadow:0 6px 24px rgba(31,42,68,.08); margin-bottom:20px;}
+  .card h2{font-size:1.15rem; margin:0 0 18px; display:flex; align-items:center; gap:8px;}
+
+  .field-row{margin-bottom:16px;}
+  label{display:block; font-weight:600; font-size:.85rem; color:var(--ink-soft); margin-bottom:6px;}
+  input[type=number]{
+    width:100%; padding:12px 14px; border-radius:12px; border:2px solid var(--line);
+    font-size:1.15rem; font-weight:700; color:var(--ink); font-family:'Rubik',sans-serif;
+    background:#FBFCFE;
+  }
+  input[type=number]:focus{outline:none; border-color:var(--teal);}
+
+  .toggle-group{display:flex; gap:10px;}
+  .toggle-btn{
+    flex:1; padding:12px 6px; border-radius:12px; border:2px solid var(--line); background:#FBFCFE;
+    font-weight:700; font-size:.92rem; color:var(--ink-soft); cursor:pointer; font-family:'Rubik',sans-serif;
+    transition:.15s;
+  }
+  .toggle-btn.active{background:var(--teal); border-color:var(--teal); color:#fff;}
+
+  .vat-inline{display:flex; align-items:center; gap:10px;}
+  .vat-inline input{width:90px; text-align:center;}
+  .vat-inline span{color:var(--ink-soft); font-weight:600;}
+
+  .results{margin-top:20px; display:flex; flex-direction:column; gap:10px;}
+  .result-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--teal-light); border-radius:14px; padding:12px 14px;
+  }
+  .result-row.blue{background:var(--blue-light);}
+  .result-row.good{background:var(--good-light);}
+  .result-label{font-size:.85rem; color:var(--ink-soft); font-weight:600;}
+  .result-value{font-size:1.25rem; font-weight:800; color:var(--ink);}
+  .result-main{display:flex; flex-direction:column; gap:2px;}
+  .copy-btn{
+    background:#fff; border:2px solid var(--line); border-radius:10px; width:40px; height:40px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+    font-size:1.05rem; color:var(--ink-soft); transition:.15s;
+  }
+  .copy-btn:hover{border-color:var(--teal); color:var(--teal-dark);}
+  .copy-btn.copied{background:var(--teal); border-color:var(--teal); color:#fff;}
+
+  .profit-row .result-value.positive{color:var(--good);}
+  .profit-row .result-value.negative{color:#D64545;}
+
+  footer{text-align:center; color:var(--ink-soft); font-size:.78rem; margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>מחשבון מע"מ ותמחור</h1>
+    <p>חישוב אוטומטי תוך כדי הקלדה</p>
+  </header>
+
+  <div class="card">
+    <h2>💰 חישוב מע"מ</h2>
+    <div class="field-row">
+      <label for="vat-amount">סכום</label>
+      <input type="number" id="vat-amount" placeholder="0" oninput="calcVat()">
+    </div>
+    <div class="field-row">
+      <label>הסכום שהוזן</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" id="btn-incl" onclick="setVatMode('incl')">כולל מע"מ</button>
+        <button type="button" class="toggle-btn" id="btn-excl" onclick="setVatMode('excl')">לא כולל מע"מ</button>
+      </div>
+    </div>
+    <div class="field-row">
+      <label for="vat-rate">אחוז מע"מ</label>
+      <div class="vat-inline">
+        <input type="number" id="vat-rate" value="18" step="0.1" oninput="calcVat()">
+        <span>%</span>
+      </div>
+    </div>
+
+    <div class="results">
+      <div class="result-row">
+        <div class="result-main">
+          <span class="result-label">לפני מע"מ</span>
+          <span class="result-value" id="res-before">0.00 ₪</span>
+        </div>
+        <button class="copy-btn" onclick="copyVal('res-before', this)">📋</button>
+      </div>
+      <div class="result-row blue">
+        <div class="result-main">
+          <span class="result-label">סכום המע"מ</span>
+          <span class="result-value" id="res-vat">0.00 ₪</span>
+        </div>
+        <button class="copy-btn" onclick="copyVal('res-vat', this)">📋</button>
+      </div>
+      <div class="result-row good">
+        <div class="result-main">
+          <span class="result-label">אחרי מע"מ</span>
+          <span class="result-value" id="res-after">0.00 ₪</span>
+        </div>
+        <button class="copy-btn" onclick="copyVal('res-after', this)">📋</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📈 חישוב רווח ותמחור</h2>
+    <div class="field-row">
+      <label for="cost">עלות</label>
+      <input type="number" id="cost" placeholder="0" oninput="calcProfit()">
+    </div>
+    <div class="field-row">
+      <label for="price">מחיר מכירה</label>
+      <input type="number" id="price" placeholder="0" oninput="calcProfit()">
+    </div>
+
+    <div class="results">
+      <div class="result-row profit-row">
+        <div class="result-main">
+          <span class="result-label">רווח בש"ח</span>
+          <span class="result-value" id="res-profit">0.00 ₪</span>
+        </div>
+        <button class="copy-btn" onclick="copyVal('res-profit', this)">📋</button>
+      </div>
+      <div class="result-row blue profit-row">
+        <div class="result-main">
+          <span class="result-label">אחוז רווח (מהעלות)</span>
+          <span class="result-value" id="res-profit-pct">0%</span>
+        </div>
+        <button class="copy-btn" onclick="copyVal('res-profit-pct', this)">📋</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>כל החישובים מתבצעים בדפדפן שלך בלבד</footer>
+</div>
+
+<script>
+let vatMode = 'incl';
+
+function setVatMode(mode){
+  vatMode = mode;
+  document.getElementById('btn-incl').classList.toggle('active', mode==='incl');
+  document.getElementById('btn-excl').classList.toggle('active', mode==='excl');
+  calcVat();
+}
+
+function fmt(n){
+  if(!isFinite(n)) n = 0;
+  return n.toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ₪';
+}
+
+function calcVat(){
+  const amount = parseFloat(document.getElementById('vat-amount').value) || 0;
+  const rate = parseFloat(document.getElementById('vat-rate').value) || 0;
+  let before, vatAmt, after;
+  if(vatMode === 'incl'){
+    after = amount;
+    before = amount / (1 + rate/100);
+    vatAmt = after - before;
+  } else {
+    before = amount;
+    vatAmt = amount * (rate/100);
+    after = before + vatAmt;
+  }
+  document.getElementById('res-before').textContent = fmt(before);
+  document.getElementById('res-vat').textContent = fmt(vatAmt);
+  document.getElementById('res-after').textContent = fmt(after);
+}
+
+function calcProfit(){
+  const cost = parseFloat(document.getElementById('cost').value) || 0;
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const profit = price - cost;
+  const pct = cost !== 0 ? (profit / cost * 100) : 0;
+
+  const profitEl = document.getElementById('res-profit');
+  const pctEl = document.getElementById('res-profit-pct');
+  profitEl.textContent = fmt(profit);
+  pctEl.textContent = pct.toLocaleString('he-IL', {minimumFractionDigits:1, maximumFractionDigits:1}) + '%';
+
+  profitEl.classList.toggle('positive', profit >= 0);
+  profitEl.classList.toggle('negative', profit < 0);
+  pctEl.classList.toggle('positive', profit >= 0);
+  pctEl.classList.toggle('negative', profit < 0);
+}
+
+function copyVal(id, btn){
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.classList.add('copied');
+    btn.textContent = '✓';
+    setTimeout(()=>{ btn.classList.remove('copied'); btn.textContent = '📋'; }, 1200);
+  });
+}
+
+calcVat();
+calcProfit();
+</script>
+</body>
+</html>
